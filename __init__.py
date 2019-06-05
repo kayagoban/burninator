@@ -7,29 +7,51 @@ import pdb
 
 class Dapp(SLDapp):
     def initialize(self):
-        #self.top_burninators = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.token = PeasantCoin(self.node)
         self.peasants = Decimal(self.token.my_balance() / (10 ** 18))
         self.total_peasants =  self.token.totalSupply() / (10 ** 18)
         self.my_burninated_peasants = self.token.burninatedBy(self.node.credstick.address) / (10 ** 18)
-        self.add_frame(MyMenuFrame, height=19, width=74, title="Trogdooooor!")
+        self.add_frame(MyMenuFrame, height=24, width=74, title="Trogdooooor!")
+
+        if self.victorious():
+            self.add_frame(VictoryFrame, height=9, width=62, title="Victory!!!")
+
+    def victorious(self):
+        if self.token.my_burninated_peasants() == 0:
+            return False
+
+        top = self.token.top_burninators()
+
+        # Are we already in the hall of max burnination?
+        if self.node.credstick.address in [x[0] for x in top]:
+            return False
+
+        if len(top) < 10:
+            return True
+        # Weakest burninator first
+        top.sort(key=lambda x: x[1])
+
+        if top[0][1] < Decimal(self.token.my_burninated_peasants()) / 10 ** self.token.functions.decimals().call():
+            return True
+        return False
+
+
 
 
 class MyMenuFrame(SLFrame):
     def initialize(self):
-        #self.claimVictory(9)
-        #debug(); pdb.set_trace()
         self.add_label("The Hall Of Maximum Burnination", add_divider=False)
         self.add_divider(draw_line=True)
+        self.add_label("Rank    Peasants           Hero", add_divider=False)
+
         for heroes in self.top_burninators_decorator():
-            self.add_label(heroes)
+            self.add_label(heroes, add_divider=False)
         self.add_divider(draw_line=True)
 
         self.add_label("Trogdor the wingaling dragon intends to burninate peasants.", add_divider=False)
-        self.add_label("There are {} peasants in the world.".format(self.peasant_decorator(self.dapp.total_peasants)))
+        self.add_label("There are {} peasants (BRNT) in the world.".format(self.peasant_decorator(self.dapp.total_peasants)))
         self.add_label("Trogdor has {} peasants, and has burninated {}".format(self.peasant_decorator(self.dapp.peasants), self.peasant_decorator(self.dapp.my_burninated_peasants)))
         self.text_value = self.add_textbox("How many to burninate?", default_value=' ')
-        self.add_divider()
         self.add_button_row([
             ("Burninate!", self.burninate, 0),
             ("Get More Peasants", self.get_peasants, 1),
@@ -37,46 +59,33 @@ class MyMenuFrame(SLFrame):
         ], layout=[30, 40, 30]
         )
 
-        self.add_button(self.claim_victory, "Claim Victory!",)
         
-    #def claimVictory(self, number):
-    #    debug(); pdb.set_trace()
-    #    weakest_burninator = 0
-    #    for i in range(10):
-    #        if number == self.dapp.top_burninators[i]:
-    #            return True
-    #        if self.dapp.top_burninators[weakest_burninator] > self.dapp.top_burninators[i]:
-    #           weakest_burninator = i
-    #    assert self.dapp.top_burninators[weakest_burninator] < number
-    #    self.dapp.top_burninators[weakest_burninator] = number
-    #    return True
-
     def top_burninators_decorator(self):
         burninators = self.dapp.token.top_burninators()
-        i = 1 
+        i = 0 
         heroes = []
 
-        debug(); pdb.set_trace()
+        #debug(); pdb.set_trace()
         for hero in burninators:
-            heroes.append("{}. {}\t{}".format(i, hero[0], self.peasant_decorator(self.hero[1])))
-            i += 1
+            hero_name = self.dapp.node._ns.name(hero[0])
+            if hero_name is None:
+                hero_name = hero[0]
+            heroes.append("{}       {:14s}     {}".format(i, self.peasant_decorator(hero[1]), hero_name))
+            i += 1 
+
+        if len(heroes) < 10:
+            for x in range(len(heroes), 10):
+                heroes.append(
+                    "{}       Unclaimed".format(str(x)))
 
         return heroes
-         
 
-    def claim_victory(self):
-        self.dapp.add_transaction_dialog(
-            self.dapp.token.claimVictory(), 
-            title="Trogdor burninates the tokens", 
-            gas_limit=100000
-        )
+    def peasant_decorator(self, peasants):
+        return "{:f}".format(peasants)[:14]
 
 
     def get_peasants(self):
         self.dapp.add_uniswap_frame(self.dapp.token.address)
-
-    def peasant_decorator(self, peasants):
-        return "{:f}".format(peasants)[:12]
 
     def peasants_validated(self):
         try:
@@ -113,4 +122,35 @@ class MyMenuFrame(SLFrame):
         )
 
         self.close()
+
+class VictoryFrame(SLFrame):
+    def initialize(self):
+        self.add_label("Congratulations!  You have racked up a truly impressive", add_divider=False)
+        self.add_label("count of {} burninated peasants, as well".format(self.peasant_decorator(self.dapp.my_burninated_peasants)), add_divider=False)
+        self.add_label("as several incinerated thatched roof cottages and various", add_divider=False)
+        self.add_label("counts of petty theft and vandalism.  Your throne in the", add_divider=False)
+        self.add_label("Hall of Maximum Burnination awaits your Dragonly Personage!")
+        self.add_button_row(
+            [("Claim Victoriousness", self.claim_victory, 0),
+            ("Back", self.close, 1)],
+            layout=[50, 50],
+        )
+
+
+        #               You have racked up an impressive"
+        #self.add_label("Congratulations!  You have racked up an impressive", add_divider=False)
+        #count of {}".format(
+        #               You have earned a place in the prestigious hall
+
+        #self.add_button(self.claim_victory, "Claim Victory!",)
+
+    def claim_victory(self):
+        self.dapp.add_transaction_dialog(
+            self.dapp.token.claimVictory(), 
+            title="Trogdor burninates the tokens", 
+            gas_limit=100000
+        )
+
+    def peasant_decorator(self, peasants):
+        return "{:f}".format(peasants)[:14]
 

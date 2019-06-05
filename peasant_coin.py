@@ -9,6 +9,9 @@ class PeasantCoin(Erc20):
     # Similar to balanceOf, but keeps track of burninated peasants
     def burninatedBy(self, address):
         return self.functions.burninatedBy(address).call()
+
+    def my_burninated_peasants(self):
+        return self.burninatedBy(self.node.credstick.address)
     
     # I should have returned the entire array, but I don't want to redeploy the contract.
     # it's only 10 iterations.  I hope you have a local node.
@@ -23,8 +26,8 @@ class PeasantCoin(Erc20):
             return []
 
         burninators = [[x, Decimal(self.functions.burninatedBy(x).call()) / (10 ** self.functions.decimals().call())] for x in list(burninators)]
-        burninators = list(burninators.sort(key=lambda x: x[1], reverse=True))
-        debug(); pdb.set_trace()
+        #debug(); pdb.set_trace()
+        burninators.sort(key=lambda x: x[1], reverse=True)
         return burninators
 
     #TXs
