@@ -11,7 +11,7 @@ class Dapp(SLDapp):
         self.peasants = Decimal(self.token.my_balance() / (10 ** 18))
         self.total_peasants =  self.token.totalSupply() / (10 ** 18)
         self.my_burninated_peasants = self.token.burninatedBy(self.node.credstick.address) / (10 ** 18)
-        self.add_frame(MyMenuFrame, height=24, width=74, title="Trogdooooor!")
+        self.add_sl_frame(MyMenuFrame(self, height=24, width=74, title="Trogdooooor!"))
 
         if self.victorious():
             self.add_frame(VictoryFrame, height=9, width=62, title="Victory!!!")
@@ -34,8 +34,6 @@ class Dapp(SLDapp):
         if top[0][1] < Decimal(self.token.my_burninated_peasants()) / 10 ** self.token.functions.decimals().call():
             return True
         return False
-
-
 
 
 class MyMenuFrame(SLFrame):
@@ -136,20 +134,13 @@ class VictoryFrame(SLFrame):
             layout=[50, 50],
         )
 
-
-        #               You have racked up an impressive"
-        #self.add_label("Congratulations!  You have racked up an impressive", add_divider=False)
-        #count of {}".format(
-        #               You have earned a place in the prestigious hall
-
-        #self.add_button(self.claim_victory, "Claim Victory!",)
-
     def claim_victory(self):
         self.dapp.add_transaction_dialog(
             self.dapp.token.claimVictory(), 
             title="Trogdor burninates the tokens", 
             gas_limit=100000
         )
+        self.close()
 
     def peasant_decorator(self, peasants):
         return "{:f}".format(peasants)[:14]
