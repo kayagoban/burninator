@@ -12,9 +12,29 @@ class PeasantCoin(Erc20):
 
     def my_burninated_peasants(self):
         return self.burninatedBy(self.node.credstick.address)
+
+
+    def victorious(self):
+        if self.my_burninated_peasants() == 0:
+            return False
+
+        top = self.top_burninators()
+
+        # Are we already in the hall of max burnination?
+        if self.node.credstick.address in [x[0] for x in top]:
+            return False
+
+        if len(top) < 10:
+            return True
+        # Weakest burninator first
+        top.sort(key=lambda x: x[1])
+
+        if top[0][1] < Decimal(self.my_burninated_peasants()) / 10 ** self.functions.decimals().call():
+            return True
+        return False
+
+
     
-    # I should have returned the entire array, but I don't want to redeploy the contract.
-    # it's only 10 iterations.  I hope you have a local node.
     def top_burninators(self): 
         ''' 
         Returns a sorted list of lists of integers and addresses, representing the top

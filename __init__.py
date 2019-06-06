@@ -11,29 +11,10 @@ class Dapp(SLDapp):
         self.peasants = Decimal(self.token.my_balance() / (10 ** 18))
         self.total_peasants =  self.token.totalSupply() / (10 ** 18)
         self.my_burninated_peasants = self.token.burninatedBy(self.node.credstick.address) / (10 ** 18)
-        self.add_sl_frame(MyMenuFrame(self, height=24, width=74, title="Trogdooooor!"))
+        self.add_sl_frame(MyMenuFrame(self, height=24, width=74 ))
 
-        if self.victorious():
-            self.add_frame(VictoryFrame, height=9, width=62, title="Victory!!!")
-
-    def victorious(self):
-        if self.token.my_burninated_peasants() == 0:
-            return False
-
-        top = self.token.top_burninators()
-
-        # Are we already in the hall of max burnination?
-        if self.node.credstick.address in [x[0] for x in top]:
-            return False
-
-        if len(top) < 10:
-            return True
-        # Weakest burninator first
-        top.sort(key=lambda x: x[1])
-
-        if top[0][1] < Decimal(self.token.my_burninated_peasants()) / 10 ** self.token.functions.decimals().call():
-            return True
-        return False
+        if self.token.victorious():
+            self.add_sl_frame(VictoryFrame(self, height=9, width=62, title="Victory!!!"))
 
 
 class MyMenuFrame(SLFrame):
@@ -137,7 +118,7 @@ class VictoryFrame(SLFrame):
     def claim_victory(self):
         self.dapp.add_transaction_dialog(
             self.dapp.token.claimVictory(), 
-            title="Trogdor burninates the tokens", 
+            title="Claiming victory", 
             gas_limit=100000
         )
         self.close()
