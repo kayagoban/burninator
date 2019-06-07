@@ -9,7 +9,7 @@ import pdb
 class Dapp(SLDapp):
     def initialize(self):
         self.token = PeasantCoin(self.node)
-        self.add_sl_frame(MyMenuFrame(self, height=24, width=74 ))
+        self.add_sl_frame(MyMenuFrame(self, height=22, width=74, title="The Hall of Maximum Burnination" ))
 
         self.victory_notification_has_been_seen = False
         self.victory_check()
@@ -44,8 +44,8 @@ class Dapp(SLDapp):
 
 class MyMenuFrame(SLFrame):
     def initialize(self):
-        self.add_label("The Hall Of Maximum Burnination", add_divider=False)
-        self.add_divider(draw_line=True)
+        #self.add_label("The Hall Of Maximum Burnination", add_divider=False)
+        #self.add_divider(draw_line=True)
         self.add_label("Rank    Peasants           Hero", add_divider=False)
 
         for i in range(10):
@@ -132,7 +132,7 @@ class MyMenuFrame(SLFrame):
 
 class VictoryFrame(SLFrame):
     def initialize(self):
-        self.add_label("Congratulations!  You have racked up a truly impressive", add_divider=False)
+        self.add_label("Huzzah!  You have racked up a truly impressive", add_divider=False)
         self.add_label("count of {} burninated peasants, as well".format(self.dapp.peasant_decorator(self.dapp.my_burninated_peasants)), add_divider=False)
         self.add_label("as several incinerated thatched roof cottages and various", add_divider=False)
         self.add_label("counts of petty theft and vandalism.  Your throne in the", add_divider=False)
