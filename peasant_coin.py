@@ -6,57 +6,66 @@ import pdb
 
 class PeasantCoin(Erc20):
 
+    ### Passthrough calls to contract
+ 
     # Similar to balanceOf, but keeps track of burninated peasants
     def burninatedBy(self, address):
         return self.functions.burninatedBy(address).call()
 
+    def topBurninators(self):
+        return self.functions.topBurninators().call()
+ 
+
+    ### Helper methods
+
     def my_burninated_peasants(self):
         return self.burninatedBy(self.node.credstick.address)
 
+  
+    def top_burninators(self): 
+        ''' 
+        Returns a sorted list of lists of integers and addresses, 
+        representing the top burninators. Maximum 10 results.
+        '''
+        burninators = set(self.topBurninators())
+        burninators.remove('0x0000000000000000000000000000000000000000')
+        if len(burninators) == 0:
+            return []
+
+        burninators = [[x, Decimal(self.burninatedBy(x)) / (10 ** 18)] for x in list(burninators)]
+        burninators.sort(key=lambda x: x[1], reverse=True)
+        return burninators
 
     def victorious(self):
         if self.my_burninated_peasants() == 0:
             return False
 
-        top = self.top_burninators()
-
         # Are we already in the hall of max burnination?
-        if self.node.credstick.address in [x[0] for x in top]:
+        if self.node.credstick.address in self.topBurninators():
             return False
+
+        top = self.top_burninators()
 
         if len(top) < 10:
             return True
+
         # Weakest burninator first
         top.sort(key=lambda x: x[1])
 
-        if top[0][1] < Decimal(self.my_burninated_peasants()) / 10 ** self.functions.decimals().call():
+        if top[0][1] < Decimal(self.my_burninated_peasants()) / 10 ** 18:
             return True
         return False
 
 
-    
-    def top_burninators(self): 
-        ''' 
-        Returns a sorted list of lists of integers and addresses, representing the top
-        burninators in peasantcoin. Maximum 10 results.
-        '''
-        burninators = set(self.functions.topBurninators().call())
-        burninators.remove('0x0000000000000000000000000000000000000000')
-        if len(burninators) == 0:
-            return []
+    ### TXs
 
-        burninators = [[x, Decimal(self.functions.burninatedBy(x).call()) / (10 ** self.functions.decimals().call())] for x in list(burninators)]
-        #debug(); pdb.set_trace()
-        burninators.sort(key=lambda x: x[1], reverse=True)
-        return burninators
-
-    #TXs
     def burninate(self, peasants):
         return self.functions.burn(peasants)
 
 
     def claimVictory(self):
         return self.functions.claimVictory()
+
 
 
     MAINNET='token.burninator.eth'
