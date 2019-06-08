@@ -4,27 +4,61 @@ from burninator.peasant_coin import PeasantCoin
 from decimal import Decimal
 from cached_property import cached_property
 from shadowlands.tui.debug import debug, end_debug
+import logging
 import pdb
 
 class Dapp(SLDapp):
     def initialize(self):
         self.token = PeasantCoin(self.node)
+        self.current_position = self.my_position
+        self.victory_notification_has_been_seen = False
         self.add_sl_frame(MyMenuFrame(self, height=22, width=74, title="The Hall of Maximum Burnination" ))
 
-        self.victory_notification_has_been_seen = False
+    def new_block_callback(self):
         self.victory_check()
+        self.check_for_rank_change()
 
     def victory_check(self):
         if self.victory_notification_has_been_seen:
             return
 
         if self.token.victorious():
-            self.add_sl_frame(VictoryFrame(self, height=9, width=62, title="Victory!!!"))
             self.victory_notification_has_been_seen = True
+            self.add_sl_frame(VictoryFrame(self, height=9, width=62, title="Victory!!!"))
 
+    def check_for_rank_change(self):
+        if self.current_position == self.my_position:
+            # no change
+            return
+        elif self.current_position is None and self.my_position is not None:
+            logging.info("Burninator rank change: {} to {}",format(str(self.current_position), str(self.my_position)))
+            message = "Huzzah!  You have ascended to rank {}!".format(self.my_position)
+            self.add_message_dialog(message)
+            self.current_position = self.my_position
+            return
 
-    def new_block_callback(self):
-        self.victory_check()
+        if self.current_position is not None and self.my_position is None:
+            message = "D: You lost your seat in the Hall of Max.Burn!"
+        else:
+            change = self.current_position - self.my_position
+            if change > 0:
+                message = "Huzzah!  You have ascended to rank {}!".format(self.my_position)
+            elif change < 0:
+                message = "Sworded!  You have been cast down to rank {}.".format(self.my_position)
+
+        self.add_message_dialog(message)
+        self.current_position = self.my_position
+
+    @cached_property
+    def my_position(self):
+        my_seat = [self.top_burninators.index(x) for x in self.top_burninators if x[0] == self.node.credstick.address]
+        if len(my_seat) > 0:
+            return my_seat[0]
+        return None
+
+    @cached_property
+    def top_burninators(self):
+        return self.token.top_burninators()
 
     @cached_property
     def total_peasants(self):
@@ -42,10 +76,9 @@ class Dapp(SLDapp):
         return "{:f}".format(peasants)[:14]
 
 
+
 class MyMenuFrame(SLFrame):
     def initialize(self):
-        #self.add_label("The Hall Of Maximum Burnination", add_divider=False)
-        #self.add_divider(draw_line=True)
         self.add_label("Rank    Peasants           Hero", add_divider=False)
 
         for i in range(10):
@@ -73,17 +106,14 @@ class MyMenuFrame(SLFrame):
 
     def burninator_hero(self, index):
         return lambda: self.top_burninators_decorator[index]
-
+    
     @cached_property
     def top_burninators_decorator(self):
-        burninators = self.dapp.token.top_burninators()
         i = 0 
         heroes = []
 
-        for hero in burninators:
-            hero_name = self.dapp.node._ns.name(hero[0])
-            if hero_name is None:
-                hero_name = hero[0]
+        for hero in self.dapp.top_burninators:
+            hero_name = self.dapp.node._ns.name(hero[0]) or hero[0]
             heroes.append("{}       {:14s}     {}".format(i, self.dapp.peasant_decorator(hero[1]), hero_name))
             i += 1 
 
@@ -138,7 +168,7 @@ class VictoryFrame(SLFrame):
         self.add_label("counts of petty theft and vandalism.  Your throne in the", add_divider=False)
         self.add_label("Hall of Maximum Burnination awaits your Dragonly Personage!")
         self.add_button_row(
-            [("Claim Victoriousness", self.claim_victory, 0),
+            [("Claim your victory", self.claim_victory, 0),
             ("Back", self.close, 1)],
             layout=[50, 50],
         )
@@ -150,5 +180,6 @@ class VictoryFrame(SLFrame):
             gas_limit=100000
         )
         self.close()
+
 
 
